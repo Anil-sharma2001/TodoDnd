@@ -1,7 +1,7 @@
 import React from 'react'
 import Sign from './component/Sign'
 import Login from './component/Login'
-import Todo from './component/Todo'
+import TodoList from './component/TodoList'
 import {BrowserRouter as Router,Route,Routes} from 'react-router-dom'
 
 
@@ -12,7 +12,7 @@ export default function App() {
         <Routes>
           <Route path='/' element={<Sign/>}/>
           <Route path='/login' element={<Login/>}/>
-          <Route path='/todo' element={<Todo/>}/>
+          <Route path='/todo' element={<TodoList/>}/>
         </Routes>
       </Router>
     </div>

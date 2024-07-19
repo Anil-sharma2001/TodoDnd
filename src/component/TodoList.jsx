@@ -1,0 +1,146 @@
+import React, { useState, useEffect } from 'react';
+import { getFirestore, collection, addDoc, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { app } from './Firebase';
+import Task from './Task';
+import { DragDropContext } from 'react-beautiful-dnd';
+import "./TodoList.css";
+
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+function TodoList() {
+  const [todoName, setTodoName] = useState("");
+  const [todoLists, setTodoLists] = useState([]);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        fetchTodoLists(user.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const addTodoList = async () => {
+    if (!userId) {
+      alert("User not authenticated");
+      return;
+    }
+
+    if (todoName.trim() === "") {
+      alert("Todo list name cannot be blank");
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "todolists"), {
+        name: todoName,
+        userId: userId,
+      });
+      alert("Todo List created with ID: " + docRef.id);
+      setTodoName("");
+      fetchTodoLists(userId);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      alert("Failed to create Todo List. Please check console for details.");
+    }
+  };
+
+  const fetchTodoLists = async (uid) => {
+    try {
+      const q = query(collection(db, "todolists"), where("userId", "==", uid));
+      const querySnapshot = await getDocs(q);
+      const lists = [];
+      querySnapshot.forEach((doc) => {
+        lists.push({ id: doc.id, ...doc.data(), tasks: { low: [], medium: [], high: [] } });
+      });
+
+      // Fetch tasks for each todo list
+      const listsWithTasks = await Promise.all(
+        lists.map(async (list) => {
+          const tasksQuery = query(collection(db, "tasks"), where("todoListId", "==", list.id));
+          const tasksSnapshot = await getDocs(tasksQuery);
+          const tasks = { low: [], medium: [], high: [] };
+          tasksSnapshot.forEach((taskDoc) => {
+            const taskData = taskDoc.data();
+            tasks[taskData.priority].push({ id: taskDoc.id, ...taskData });
+          });
+          return { ...list, tasks };
+        })
+      );
+
+      setTodoLists(listsWithTasks);
+    } catch (e) {
+      console.error("Error fetching todo lists: ", e);
+    }
+  };
+
+  const onDragEnd = async (result) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    const sourcePriority = source.droppableId.split('-')[0];
+    const destinationPriority = destination.droppableId.split('-')[0];
+    const todoListId = source.droppableId.split('-')[1];
+
+    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+      return;
+    }
+
+    try {
+      // Update the task's priority in Firestore
+      const taskDocRef = doc(db, "tasks", draggableId);
+      await updateDoc(taskDocRef, { priority: destinationPriority });
+
+      // Update the state locally
+      setTodoLists((prevTodoLists) =>
+        prevTodoLists.map((list) => {
+          if (list.id === todoListId) {
+            const newTasks = { ...list.tasks };
+            const [movedTask] = newTasks[sourcePriority].splice(source.index, 1);
+            newTasks[destinationPriority].splice(destination.index, 0, movedTask);
+            return { ...list, tasks: newTasks };
+          }
+          return list;
+        })
+      );
+    } catch (error) {
+      console.error("Error updating task priority: ", error);
+    }
+  };
+
+  return (
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div className='todoHandle'>
+        <h1>Todo Lists</h1>
+        <input
+          type="text"
+          placeholder="Enter todo list name"
+          value={todoName}
+          onChange={(e) => setTodoName(e.target.value)}
+          required
+        /><br/>
+        <button onClick={addTodoList}>Create Todo List</button>
+      </div>
+      <div className='todo-list'>
+        <div className='todo-list-container'>
+          {todoLists.map((list) => (
+            <div key={list.id} className="todo-list-item">
+              <h2>{list.name}</h2>
+              <Task todoListId={list.id} initialTasks={list.tasks} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </DragDropContext>
+  );
+}
+
+export default TodoList;
