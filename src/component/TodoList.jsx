@@ -80,6 +80,8 @@ function TodoList() {
   };
 
   const onDragEnd = async (result) => {
+    // return
+    console.log(result)
     const { destination, source, draggableId } = result;
 
     if (!destination) {
@@ -100,22 +102,61 @@ function TodoList() {
       await updateDoc(taskDocRef, { priority: destinationPriority });
 
       // Update the state locally
-      setTodoLists((prevTodoLists) =>
-        prevTodoLists.map((list) => {
-          if (list.id === todoListId) {
-            const newTasks = { ...list.tasks };
-            const [movedTask] = newTasks[sourcePriority].splice(source.index, 1);
-            newTasks[destinationPriority].splice(destination.index, 0, movedTask);
-            return { ...list, tasks: newTasks };
-          }
-          return list;
-        })
+      setTodoLists((prevTodoLists) =>{
+        console.log('prevTodoLists',prevTodoLists)
+        return  prevTodoLists.map((list) => {
+            if (list.id === todoListId) {
+                let tasks = JSON.parse(JSON.stringify(list.tasks))
+                console.log(tasks,tasks[sourcePriority],sourcePriority);
+               let movedTask = tasks[sourcePriority].find((item, i)=>{
+                console.log('--',item);
+                return i === source.index})
+               console.log({movedTask})
+               tasks[sourcePriority] = tasks[sourcePriority].filter((item,i)=>{
+                console.log(item,todoListId);
+                return i !== source.index})
+               tasks[destinationPriority] = [...tasks[destinationPriority], {...movedTask, priority: destinationPriority}]
+               console.log(tasks);
+               return {...list, tasks}
+            //   const newTasks = { ...list.tasks };
+            //   const [movedTask] = newTasks[sourcePriority].splice(source.index, 1);
+            //   newTasks[destinationPriority].splice(destination.index, 0, movedTask);
+            //   return { ...list, tasks: newTasks };
+            }
+            return list;
+          })
+      }
       );
     } catch (error) {
       console.error("Error updating task priority: ", error);
     }
   };
 
+  const addTask = async (obj) => {
+    try {
+      const docRef = await addDoc(collection(db, "tasks"), obj);
+      alert("Task created with ID: " + docRef?.id);
+      setTodoLists((prevTodoLists) =>{
+        console.log('prevTodoLists',prevTodoLists)
+        return  prevTodoLists.map((list) => {
+            if (list.id === obj.todoListId) {
+                let tasks = {...list.tasks}
+                tasks[obj.priority].push({id:docRef.id, ...obj})
+               return {...list, tasks}
+            //   const newTasks = { ...list.tasks };
+            //   const [movedTask] = newTasks[sourcePriority].splice(source.index, 1);
+            //   newTasks[destinationPriority].splice(destination.index, 0, movedTask);
+            //   return { ...list, tasks: newTasks };
+            }
+            return list;
+          })
+      }
+      );
+    // fetchTodoLists()
+    } catch (e) {
+      console.error("Error adding task: ", e);
+    }
+  };
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className='todoHandle'>
@@ -131,12 +172,14 @@ function TodoList() {
       </div>
       <div className='todo-list'>
         <div className='todo-list-container'>
-          {todoLists.map((list) => (
+          {todoLists.map((list, i) => {
+            console.log('list item',i,list);
+            return (
             <div key={list.id} className="todo-list-item">
               <h2>{list.name}</h2>
-              <Task todoListId={list.id} initialTasks={list.tasks} />
+              <Task todoListId={list.id} initialTasks={list.tasks} addTask={addTask} />
             </div>
-          ))}
+          )})}
         </div>
       </div>
     </DragDropContext>

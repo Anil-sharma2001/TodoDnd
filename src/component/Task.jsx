@@ -6,31 +6,31 @@ import "./Task.css";
 
 const db = getFirestore(app);
 
-function Task({ todoListId, initialTasks }) {
+function Task({ todoListId, initialTasks, addTask }) {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskPriority, setTaskPriority] = useState("low");
-  const [tasks, setTasks] = useState(initialTasks);
-
-  const addTask = async () => {
-    try {
-      const docRef = await addDoc(collection(db, "tasks"), {
-        todoListId,
-        title: taskTitle,
-        description: taskDescription,
-        dueDate: taskDueDate,
-        priority: taskPriority,
-      });
-      alert("Task created with ID: " + docRef.id);
-      setTaskTitle("");
-      setTaskDescription("");
-      setTaskDueDate("");
-      fetchTasks();
-    } catch (e) {
-      console.error("Error adding task: ", e);
-    }
-  };
+//   const [tasks, setTasks] = useState(initialTasks || { low: [], medium: [], high: [] });
+console.log('>>>>>',initialTasks);
+//   const addTask = async () => {
+//     try {
+//       const docRef = await addDoc(collection(db, "tasks"), {
+//         todoListId,
+//         title: taskTitle,
+//         description: taskDescription,
+//         dueDate: taskDueDate,
+//         priority: taskPriority,
+//       });
+//       alert("Task created with ID: " + docRef?.id);
+//       setTaskTitle("");
+//       setTaskDescription("");
+//       setTaskDueDate("");
+//       fetchTasks();
+//     } catch (e) {
+//       console.error("Error adding task: ", e);
+//     }
+//   };
 
   const fetchTasks = async () => {
     try {
@@ -39,21 +39,22 @@ function Task({ todoListId, initialTasks }) {
       const taskList = { low: [], medium: [], high: [] };
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        taskList[data.priority].push({ id: doc.id, ...data });
+        taskList[data.priority].push({ id: doc?.id, ...data });
       });
-      setTasks(taskList);
+    //   console.log('--------',{taskList})
+    //   setTasks(taskList);
     } catch (e) {
       console.error("Error fetching tasks: ", e);
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, [todoListId]);
+//   useEffect(() => {
+//     fetchTasks();
+//   }, [todoListId]);
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+//   useEffect(() => {
+//     setTasks(initialTasks || { low: [], medium: [], high: [] });
+//   }, [initialTasks]);
 
   return (
     <div className='task'>
@@ -83,18 +84,33 @@ function Task({ todoListId, initialTasks }) {
         <option value="medium">Medium</option>
         <option value="high">High</option>
       </select>
-      <button onClick={addTask}>Add Task</button>
+    <button onClick={()=>{
+        setTaskTitle("");
+        setTaskDescription("");
+        setTaskDueDate("");
+        // fetchTasks();
+        addTask({
+    todoListId,
+    title: taskTitle,
+    description: taskDescription,
+    dueDate: taskDueDate,
+    priority: taskPriority,
+    })}}>Add Task</button>
       <div className="priority-columns">
         {['low', 'medium', 'high'].map((priority) => (
           <Droppable droppableId={`${priority}-${todoListId}`} key={priority}>
-            {(provided) => (
+            {(provided) => {
+                console.log(priority,initialTasks[priority]);
+                return(
               <div
                 className={`task-container ${priority}`}
                 ref={provided.innerRef}
                 {...provided.droppableProps}
               >
-                {tasks[priority].map((task, index) => (
-                  <Draggable draggableId={task.id} index={index} key={task.id}>
+                {initialTasks && initialTasks[priority] && initialTasks[priority].map((task, index) => {
+                    console.log({initialTasks,task})
+                return (
+                  <Draggable draggableId={task?.id} index={index} key={task?.id}>
                     {(provided) => (
                       <div
                         ref={provided.innerRef}
@@ -108,10 +124,10 @@ function Task({ todoListId, initialTasks }) {
                       </div>
                     )}
                   </Draggable>
-                ))}
+                )})}
                 {provided.placeholder}
               </div>
-            )}
+            )}}
           </Droppable>
         ))}
       </div>

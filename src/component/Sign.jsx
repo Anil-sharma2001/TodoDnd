@@ -20,7 +20,7 @@ export default function Sign() {
     e.preventDefault()
     createUserWithEmailAndPassword(auth,email,password).then(data=>{
       console.log(auth,'athenhdb')
-      nevigate('/todo')
+      alert('Successfully created')
     }).catch(err=>{
       alert(err.code)
     })
