@@ -1,201 +1,163 @@
-import React, { useState, useEffect } from 'react';
-import { auth } from './Firebase';
-import { signOut } from 'firebase/auth';
-import { getDatabase, ref, get, child, set } from 'firebase/database';
-import { useNavigate } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import './Dnd.css'; // Import your CSS file
-import { db } from './Firebase';
+import React, { useState } from "react";
+import ReactDOM from "react-dom";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
-export default function Todo() {
-    const [forms, setForms] = useState([]);
-    const navigate = useNavigate();
+// fake data generator
+const getItems = (count, offset = 0) =>
+  Array.from({ length: count }, (v, k) => k).map(k => ({
+    id: `item-${k + offset}-${new Date().getTime()}`,
+    content: `item ${k + offset}`
+  }));
 
-    const [columns, setColumns] = useState({
-        todo: { name: "To Do", items: [] },
-        inProgress: { name: "In Progress", items: [] },
-        done: { name: "Done", items: [] }
-    });
+const reorder = (list, startIndex, endIndex) => {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
 
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        date: '',
-        priority: 'low'
-    });
+  return result;
+};
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+/**
+ * Moves an item from one list to another list.
+ */
+const move = (source, destination, droppableSource, droppableDestination) => {
+  const sourceClone = Array.from(source);
+  const destClone = Array.from(destination);
+  const [removed] = sourceClone.splice(droppableSource.index, 1);
 
-    const handleData = async (e) => {
-        e.preventDefault();
-        const { title, description, date, priority } = formData;
+  destClone.splice(droppableDestination.index, 0, removed);
 
-        if (!title || !description || !date) {
-            alert('Please fill in all the required fields.');
-            return;
-        }
+  const result = {};
+  result[droppableSource.droppableId] = sourceClone;
+  result[droppableDestination.droppableId] = destClone;
 
-        const newTask = { title, description, date, priority };
-        try {
-            const response = await set(ref(db, 'myData/' + title), newTask);
-            alert('Data stored successfully!');
-            setFormData({
-                title: '',
-                description: '',
-                date: '',
-                priority: 'low'
-            });
-            fetchData();
-        } catch (err) {
-            console.error(err);
-            alert('Failed to store data. Please check console for details.');
-        }
-    };
+  return result;
+};
+const grid = 8;
 
-    const handleClick = async () => {
-        try {
-            await signOut(auth);
-            navigate('/login');
-        } catch (err) {
-            console.error(err);
-            alert('Failed to sign out. Please try again.');
-        }
-    };
+const getItemStyle = (isDragging, draggableStyle) => ({
+  // some basic styles to make the items look a bit nicer
+  userSelect: "none",
+  padding: grid * 2,
+  margin: `0 0 ${grid}px 0`,
 
-    const fetchData = async () => {
-        const dbRef = ref(getDatabase());
-        try {
-            const snapshot = await get(child(dbRef, 'myData'));
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                const tasksArray = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+  // change background colour if dragging
+  background: isDragging ? "lightgreen" : "grey",
 
-                const updatedColumns = {
-                    todo: { name: "To Do", items: tasksArray.filter(task => task.priority === 'low') },
-                    inProgress: { name: "In Progress", items: tasksArray.filter(task => task.priority === 'medium') },
-                    done: { name: "Done", items: tasksArray.filter(task => task.priority === 'high') }
-                };
+  // styles we need to apply on draggables
+  ...draggableStyle
+});
+const getListStyle = isDraggingOver => ({
+  background: isDraggingOver ? "lightblue" : "lightgrey",
+  padding: grid,
+  width: 250
+});
 
-                setColumns(updatedColumns);
-            } else {
-                console.log("No data available");
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
+function Todo() {
+  const [state, setState] = useState([getItems(10), getItems(5, 10)]);
 
-    const onDragEnd = (result, columnId) => {
-        if (!result.destination) return;
-        const { source, destination } = result;
-        const sourceColumn = columns[columnId];
-        const copiedItems = [...sourceColumn.items];
-        const [removed] = copiedItems.splice(source.index, 1);
-        copiedItems.splice(destination.index, 0, removed);
+  function onDragEnd(result) {
+    const { source, destination } = result;
 
-        const updatedColumns = {
-            ...columns,
-            [columnId]: { ...sourceColumn, items: copiedItems }
-        };
+    // dropped outside the list
+    if (!destination) {
+      return;
+    }
+    const sInd = +source.droppableId;
+    const dInd = +destination.droppableId;
 
-        setColumns(updatedColumns);
-    };
+    if (sInd === dInd) {
+      const items = reorder(state[sInd], source.index, destination.index);
+      const newState = [...state];
+      newState[sInd] = items;
+      setState(newState);
+    } else {
+      const result = move(state[sInd], state[dInd], source, destination);
+      const newState = [...state];
+      newState[sInd] = result[sInd];
+      newState[dInd] = result[dInd];
 
-    const handleAddForm = () => {
-        const newForm = {
-            id: forms.length + 1,
-            title: formData.title,
-            description: formData.description,
-            date: formData.date,
-            priority: formData.priority
-        };
+      setState(newState.filter(group => group.length));
+    }
+  }
 
-        setForms(prevForms => [...prevForms, newForm]);
-        setFormData({
-            title: '',
-            description: '',
-            date: '',
-            priority: 'low'
-        });
-    };
-
-    return (
-        <div>
-            <button onClick={handleClick} className="sign-out-btn">Sign Out</button>
-            <div className='contain'>
-                <div className='title'>
-                    <label>
-                        Task title:
-                        <input type='text' name='title' value={formData.title} onChange={handleChange} required />
-                        <button onClick={handleAddForm} className="add-more-btn">Add More</button>
-                    </label>
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => {
+          setState([...state, []]);
+        }}
+      >
+        Add new group
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setState([...state, getItems(1)]);
+        }}
+      >
+        Add new item
+      </button>
+      <div style={{ display: "flex" }}>
+        <DragDropContext onDragEnd={onDragEnd}>
+          {state.map((el, ind) => (
+            <Droppable key={ind} droppableId={`${ind}`}>
+                {console.log('inddd-',ind,"ellll-",el)}
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  style={getListStyle(snapshot.isDraggingOver)}
+                  {...provided.droppableProps}
+                >
+                  {el.map((item, index) => (
+                    <Draggable
+                      key={item.id}
+                      draggableId={item.id}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          style={getItemStyle(
+                            snapshot.isDragging,
+                            provided.draggableProps.style
+                          )}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-around"
+                            }}
+                          >
+                            {item.content}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newState = [...state];
+                                newState[ind].splice(index, 1);
+                                setState(
+                                  newState.filter(group => group.length)
+                                );
+                              }}
+                            >
+                              delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
                 </div>
-                <div className='tasks-container'>
-                    {forms.map(form => (
-                        <form key={form.id} className="task-form" onSubmit={handleData}>
-                            <div style={{ display: 'flex', justifyContent: "center" }}>
-                                <h3>{form.title}</h3>
-                            </div>
-                            <label>
-                                Task Description:
-                                <input type='text' name='description' value={form.description} onChange={handleChange} required />
-                            </label>
-                            <label>
-                                Task due date:
-                                <input type='date' name='date' value={form.date} onChange={handleChange} required />
-                            </label>
-                            <label>
-                                Task priority:
-                                <select name='priority' value={form.priority} onChange={handleChange}>
-                                    <option value='low'>Low</option>
-                                    <option value='medium'>Medium</option>
-                                    <option value='high'>High</option>
-                                </select>
-                            </label>
-                            <button type="submit" className="submit-btn">Add</button>
-                            <div className='drag-drop-container'>
-                                <DragDropContext onDragEnd={(result) => onDragEnd(result, 'todo')}>
-                                    <div className="column">
-                                        <p>To Do</p>
-                                        <Droppable droppableId='todo'>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    {...provided.droppableProps}
-                                                    ref={provided.innerRef}
-                                                    className={`droppable-col ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
-                                                >
-                                                    {columns.todo.items.map((item, index) => (
-                                                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                                                            {(provided, snapshot) => (
-                                                                <div
-                                                                    ref={provided.innerRef}
-                                                                    {...provided.draggableProps}
-                                                                    {...provided.dragHandleProps}
-                                                                    className={`draggable-item ${snapshot.isDragging ? 'dragging' : ''}`}
-                                                                >
-                                                                    <span>{item.title}</span>
-                                                                    <br></br>
-                                                                    <span>{item.description}</span>
-                                                                    <br></br>
-                                                                    <span>{item.date}</span>
-                                                                </div>
-                                                            )}
-                                                        </Draggable>
-                                                    ))}
-                                                    {provided.placeholder}
-                                                </div>
-                                            )}
-                                        </Droppable>
-                                    </div>
-                                </DragDropContext>
-                            </div>
-                        </form>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
+              )}
+            </Droppable>
+          ))}
+        </DragDropContext>
+      </div>
+    </div>
+  );
 }
+export default Todo

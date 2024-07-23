@@ -89,7 +89,9 @@ function TodoList() {
     }
 
     const sourcePriority = source.droppableId.split('-')[0];
+    const sourceId = source.droppableId.split('-')[1];
     const destinationPriority = destination.droppableId.split('-')[0];
+    const destinationId = destination.droppableId.split('-')[1];
     const todoListId = source.droppableId.split('-')[1];
 
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
@@ -105,18 +107,22 @@ function TodoList() {
       setTodoLists((prevTodoLists) =>{
         console.log('prevTodoLists',prevTodoLists)
         return  prevTodoLists.map((list) => {
-            if (list.id === todoListId) {
+            if(list.id === sourceId && list.id !== destinationId){
+              let tasks = JSON.parse(JSON.stringify(list.tasks))
+              tasks[sourcePriority] = tasks[sourcePriority].filter((item,i)=>{
+                return i !== source.index})
+               return {...list, tasks}
+
+            }
+            if (list.id === destinationId) {
                 let tasks = JSON.parse(JSON.stringify(list.tasks))
-                console.log(tasks,tasks[sourcePriority],sourcePriority);
-               let movedTask = tasks[sourcePriority].find((item, i)=>{
-                console.log('--',item);
+               let movedTask = prevTodoLists.find(item=>item.id === sourceId)?.tasks[sourcePriority].find((item, i)=>{
                 return i === source.index})
-               console.log({movedTask})
+                console.log({movedTask});
                tasks[sourcePriority] = tasks[sourcePriority].filter((item,i)=>{
-                console.log(item,todoListId);
                 return i !== source.index})
                tasks[destinationPriority] = [...tasks[destinationPriority], {...movedTask, priority: destinationPriority}]
-               console.log(tasks);
+               console.log({...list, tasks});
                return {...list, tasks}
             //   const newTasks = { ...list.tasks };
             //   const [movedTask] = newTasks[sourcePriority].splice(source.index, 1);
@@ -158,31 +164,31 @@ function TodoList() {
     }
   };
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className='todoHandle'>
-        <h1>Todo Lists</h1>
-        <input
-          type="text"
-          placeholder="Enter todo list name"
-          value={todoName}
-          onChange={(e) => setTodoName(e.target.value)}
-          required
-        /><br/>
-        <button onClick={addTodoList}>Create Todo List</button>
-      </div>
-      <div className='todo-list'>
-        <div className='todo-list-container'>
-          {todoLists.map((list, i) => {
-            console.log('list item',i,list);
-            return (
-            <div key={list.id} className="todo-list-item">
-              <h2>{list.name}</h2>
-              <Task todoListId={list.id} initialTasks={list.tasks} addTask={addTask} />
-            </div>
-          )})}
+  <DragDropContext onDragEnd={onDragEnd}>
+  <div className='todoHandle'>
+    <h1>Todo Lists</h1>
+    <input
+      type="text"
+      placeholder="Enter todo list name"
+      value={todoName}
+      onChange={(e) => setTodoName(e.target.value)}
+      required
+    />
+    <br/>
+    <button onClick={addTodoList}>Create Todo List</button>
+  </div>
+  <div className='todo-list'>
+    <div className='todo-list-container'>
+      {todoLists.map((list) => (
+        <div key={list.id} className="todo-list-item">
+          <h2>{list.name}</h2>
+          <Task todoListId={list.id} initialTasks={list.tasks} addTask={addTask} />
         </div>
-      </div>
-    </DragDropContext>
+      ))}
+    </div>
+  </div>
+</DragDropContext>
+
   );
 }
 

@@ -12,7 +12,6 @@ function Task({ todoListId, initialTasks, addTask }) {
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskPriority, setTaskPriority] = useState("low");
 //   const [tasks, setTasks] = useState(initialTasks || { low: [], medium: [], high: [] });
-console.log('>>>>>',initialTasks);
 //   const addTask = async () => {
 //     try {
 //       const docRef = await addDoc(collection(db, "tasks"), {
@@ -100,7 +99,6 @@ console.log('>>>>>',initialTasks);
         {['low', 'medium', 'high'].map((priority) => (
           <Droppable droppableId={`${priority}-${todoListId}`} key={priority}>
             {(provided) => {
-                console.log(priority,initialTasks[priority]);
                 return(
               <div
                 className={`task-container ${priority}`}
@@ -108,7 +106,6 @@ console.log('>>>>>',initialTasks);
                 {...provided.droppableProps}
               >
                 {initialTasks && initialTasks[priority] && initialTasks[priority].map((task, index) => {
-                    console.log({initialTasks,task})
                 return (
                   <Draggable draggableId={task?.id} index={index} key={task?.id}>
                     {(provided) => (
@@ -117,8 +114,9 @@ console.log('>>>>>',initialTasks);
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
                         className="task-item"
-                      >
+                        > 
                         <h4>{task.title}</h4>
+                        <p>{task.priority}</p>
                         <p>{task.description}</p>
                         <p>Due: {task.dueDate}</p>
                       </div>
