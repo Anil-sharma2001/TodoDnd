@@ -1,25 +1,27 @@
-import React from 'react'
-import {Link,useNavigate} from "react-router-dom"
+import React from 'react';
+import { Link, useNavigate } from "react-router-dom";
+import './Menu.css';
 
 export default function Menu() {
-   const nevigate= useNavigate()
+  const navigate = useNavigate();
 
-    const userHandle =()=>{
-      nevigate('/userlist')
-        
-      }
-      const taskListHandle=()=>{
-       nevigate('/tasklist')
-      }
-      const userTaskHandle=()=>{
-        nevigate('/usertask')
-      }
- 
+  const userHandle = () => {
+    navigate('/userlist');
+  };
+
+  const taskListHandle = () => {
+    navigate('/tasklist');
+  };
+
+  const userTaskHandle = () => {
+    navigate('/usertask');
+  };
+
   return (
-    <div  className='container'>
-        <button className='btn' onClick={userHandle}>User List</button>
-        <button className='btn' onClick={taskListHandle}>Task Lists</button>
-        <button className='btn' onClick={userTaskHandle}>Task</button>
-      </div>
-  )
+    <div className='menuu'>
+      <button className='btn' onClick={userHandle}>User List</button>
+      <button className='btn' onClick={taskListHandle}>Task Lists</button>
+      <button className='btn' onClick={userTaskHandle}>Task</button>
+    </div>
+  );
 }
