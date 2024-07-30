@@ -3,6 +3,9 @@ import "./Sign.css"
 import {Link,useNavigate } from 'react-router-dom'
 import { auth } from './Firebase'
 import { signInWithEmailAndPassword } from 'firebase/auth'
+import Menu from "./Menu.jsx"
+
+import { v4 as uuidv4 } from 'uuid';
 
 
 export default function Login() {
@@ -11,14 +14,21 @@ export default function Login() {
 
    const nevigate =useNavigate()
 
-   const emailHandle =(e)=>{
+
+  
+//  console.log(currentDate)
+
+   const emailHandle =(e)=>{ 
     setEmail(e.target.value)
    }
+
    const emailPassword =(e)=>{
     setPassword(e.target.value)
    }
-   const handleSubmit =(e)=>{
+
+   const handleSubmit = async (e)=>{
     e.preventDefault()
+
     signInWithEmailAndPassword(auth,email,password).then(data=>{
       console.log(auth,"authData")
       nevigate('/todo')
@@ -28,11 +38,10 @@ export default function Login() {
    setEmail('')
    setPassword('')
    }
-  
-  
-    
+
      return (
        <div className='container'>
+       
          <form className='form-sign' onSubmit={handleSubmit}>
            <h1 className='myTitle'>LogIn</h1>
            <label className='userDetail'>

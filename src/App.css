@@ -1,0 +1,13 @@
+.btn{
+    margin: 10px;
+}
+.contain{
+    height: 100%;
+    margin-top: 35px;
+    width: 110vh;
+    background-color: #205669;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 13px;
+}

@@ -6,11 +6,13 @@ import "./Task.css";
 
 const db = getFirestore(app);
 
-function Task({ todoListId, initialTasks, addTask }) {
+function Task({ todoListId, initialTasks, addTask,mail }) {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskPriority, setTaskPriority] = useState("low");
+  // const [count ,setCount]=useState(0)
+
 //   const [tasks, setTasks] = useState(initialTasks || { low: [], medium: [], high: [] });
 //   const addTask = async () => {
 //     try {
@@ -34,6 +36,7 @@ function Task({ todoListId, initialTasks, addTask }) {
   const fetchTasks = async () => {
     try {
       const q = query(collection(db, "tasks"), where("todoListId", "==", todoListId));
+     console.log(q)
       const querySnapshot = await getDocs(q);
       const taskList = { low: [], medium: [], high: [] };
       querySnapshot.forEach((doc) => {
@@ -54,6 +57,15 @@ function Task({ todoListId, initialTasks, addTask }) {
 //   useEffect(() => {
 //     setTasks(initialTasks || { low: [], medium: [], high: [] });
 //   }, [initialTasks]);
+
+const today = new Date();
+const month = today.getMonth() + 1;
+const year = today.getFullYear();
+const date = today.getDate();
+const time = today.getHours();
+const minute = today.getMinutes();
+const currentDate =
+  month + "/" + date + "/" + year + "--" + time + ":" + minute;
 
   return (
     <div className='task'>
@@ -87,13 +99,19 @@ function Task({ todoListId, initialTasks, addTask }) {
         setTaskTitle("");
         setTaskDescription("");
         setTaskDueDate("");
+        // setCount(count+1)
+        
+        
         // fetchTasks();
+
         addTask({
     todoListId,
     title: taskTitle,
     description: taskDescription,
     dueDate: taskDueDate,
     priority: taskPriority,
+    created:currentDate,
+    mail:mail
     })}}>Add Task</button>
       <div className="priority-columns">
         {['low', 'medium', 'high'].map((priority) => (
