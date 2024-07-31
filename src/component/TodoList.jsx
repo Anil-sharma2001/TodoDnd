@@ -213,11 +213,17 @@ function TodoList() {
     <button onClick={addTodoList}>Create Todo List</button>
   </div>
   <div className='todo-list'>
-    <div className='todo-list-container'>
+    <div className='todo-list-container'>                 
       {todoLists.map((list) => (
         <div key={list.id} className="todo-list-item">
           <h2>{list.name}</h2>
+          
           <Task todoListId={list.id} initialTasks={list.tasks} addTask={addTask} mail={mail}/>
+          <div className='detail' style={{display:'flex'}}>
+          <h1>Low</h1>
+          <h1>Meduim</h1>
+          <h1>High</h1>
+          </div>
         </div>
       ))}
     </div>

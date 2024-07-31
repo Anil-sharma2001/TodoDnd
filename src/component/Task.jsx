@@ -127,7 +127,8 @@ const currentDate =
                 return (
                   <Draggable draggableId={task?.id} index={index} key={task?.id}>
                     {(provided) => (
-                      <div
+                      <>                      <div
+                      
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
@@ -138,8 +139,11 @@ const currentDate =
                         <p>{task.description}</p>
                         <p>Due: {task.dueDate}</p>
                       </div>
+                      
+                     </>
                     )}
                   </Draggable>
+                  
                 )})}
                 {provided.placeholder}
               </div>
